@@ -17,7 +17,10 @@ export async function GET(
   const timeZoneOffSet = searchParams.get('timeZoneOffSet')
 
   if (!date || !timeZoneOffSet) {
-    return Response.json({ message: 'Date or timezone not provided.' }, { status: 400 })
+    return Response.json(
+      { message: 'Date or timezone not provided.' },
+      { status: 400 },
+    )
   }
 
   const user = await prisma.user.findUnique({
@@ -32,10 +35,14 @@ export async function GET(
 
   const referenceDate = dayjs(String(date))
   const isPastDate = referenceDate.endOf('day').isBefore(new Date())
- 
-  const timeZoneOffSetInHours = typeof timeZoneOffSet === 'string' ? Number(timeZoneOffSet) / 60 : Number(timeZoneOffSet[0]) / 60
 
-  const referenceDateTimeZoneOffSetInHours = referenceDate.toDate().getTimezoneOffset() / 60
+  const timeZoneOffSetInHours =
+    typeof timeZoneOffSet === 'string'
+      ? Number(timeZoneOffSet) / 60
+      : Number(timeZoneOffSet[0]) / 60
+
+  const referenceDateTimeZoneOffSetInHours =
+    referenceDate.toDate().getTimezoneOffset() / 60
 
   if (isPastDate) {
     return Response.json({ possibleTimes: [], availableTimes: [] })
@@ -70,18 +77,28 @@ export async function GET(
     where: {
       user_id: user.id,
       date: {
-        gte: referenceDate.set('hour', startHour).add(timeZoneOffSetInHours, 'hours').toDate(),
-        lte: referenceDate.set('hour', endHour).add(timeZoneOffSetInHours, 'hours').toDate(),
+        gte: referenceDate
+          .set('hour', startHour)
+          .add(timeZoneOffSetInHours, 'hours')
+          .toDate(),
+        lte: referenceDate
+          .set('hour', endHour)
+          .add(timeZoneOffSetInHours, 'hours')
+          .toDate(),
       },
     },
   })
 
   const availableTimes = possibleTimes.filter((time) => {
     const isTimeBlocked = blockedTimes.some(
-      (blockedTime) => blockedTime.date.getUTCHours() - timeZoneOffSetInHours === time,
+      (blockedTime) =>
+        blockedTime.date.getUTCHours() - timeZoneOffSetInHours === time,
     )
 
-    const isTimeInPast = referenceDate.set('hour', time).subtract(referenceDateTimeZoneOffSetInHours, 'hours').isBefore(new Date())
+    const isTimeInPast = referenceDate
+      .set('hour', time)
+      .subtract(referenceDateTimeZoneOffSetInHours, 'hours')
+      .isBefore(new Date())
 
     return !isTimeBlocked && !isTimeInPast
   })
